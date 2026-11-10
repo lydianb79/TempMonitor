@@ -79,9 +79,9 @@ final class SystemUsageSampler {
             }
         }
         if kr == KERN_SUCCESS {
-            let internal = UInt64(stats.internal_page_count)
-            let purgeable = min(internal, UInt64(stats.purgeable_count))
-            s.memApp = (internal - purgeable) * pageSize
+            let internalPages = UInt64(stats.internal_page_count)
+            let purgeable = min(internalPages, UInt64(stats.purgeable_count))
+            s.memApp = (internalPages - purgeable) * pageSize
             s.memWired = UInt64(stats.wire_count) * pageSize
             s.memCompressed = UInt64(stats.compressor_page_count) * pageSize
             s.memUsed = min(s.memTotal, s.memApp + s.memWired + s.memCompressed)
