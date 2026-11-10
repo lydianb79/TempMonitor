@@ -39,7 +39,7 @@ The red **REC** pill in the header shows that recording is on and how long it ha
 The ⬇︎ menu next to it, the **File** menu (⌘S) and the menu bar item all let you:
 
 - **Export History as CSV…**: saves to `~/Documents/TempMonitor/` by default
-- **Export Graph as PNG… / PDF…** (⇧⌘S for PNG): a chart of the whole session with CPU and GPU lines, peak markers and avg/max/min stats, in your chosen °C/°F
+- **Export Graph as PNG… / PDF…** (⇧⌘S for PNG): two charts of the whole session on a shared timeline: CPU/GPU temperature (in your chosen °C/°F) and CPU/memory usage in %, each with peak markers and avg/max/min stats
 - **Auto-save CSV + Graph When Quitting**: writes `TempMonitor_<start time>.csv` and a matching `.png` there automatically
 - **Clear History**, and switch recording on or off (the setting is remembered)
 
