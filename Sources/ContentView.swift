@@ -28,12 +28,17 @@ struct ContentView: View {
                     TemperatureCard(title: "GPU", subtitle: monitor.gpuName, symbol: "square.stack.3d.up.fill",
                                     stats: monitor.gpu, unit: unit)
                 }
+                HStack(spacing: 20) {
+                    CPUUsageCard(usage: monitor.usage, history: monitor.cpuUsageHistory)
+                    MemoryCard(usage: monitor.usage, history: monitor.memUsageHistory)
+                }
                 if showSensors { SensorPanel(sensors: monitor.sensors, unit: unit) }
-                Spacer(minLength: 0)
             }
             .padding(.horizontal, 28)
             .padding(.top, 38)
             .padding(.bottom, 24)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .wrappedInScroll()
         }
         .preferredColorScheme(.dark)
     }
@@ -149,7 +154,7 @@ struct TemperatureCard: View {
 
                 HStack(alignment: .center, spacing: 18) {
                     RingGauge(value: stats.current, unit: unit)
-                        .frame(width: 140, height: 140)
+                        .frame(width: 128, height: 128)
                     VStack(alignment: .leading, spacing: 10) {
                         StatRow(label: "Hottest sensor", value: unit.format(stats.hottest, decimals: 1))
                         StatRow(label: "Session max", value: unit.format(stats.sessionMax, decimals: 1))
@@ -158,7 +163,7 @@ struct TemperatureCard: View {
                 }
 
                 Sparkline(values: stats.history, tint: tint)
-                    .frame(height: 54)
+                    .frame(height: 44)
             }
         }
         .animation(.easeInOut(duration: 0.4), value: stats.current)
@@ -374,6 +379,158 @@ struct RecordingControl: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .help("Save recorded history")
+        }
+    }
+}
+
+// MARK: - Usage
+
+private extension View {
+    func wrappedInScroll() -> some View {
+        ScrollView(.vertical, showsIndicators: false) { self }
+    }
+}
+
+struct CardHeader: View {
+    let title: String
+    let subtitle: String
+    let symbol: String
+    let tint: Color
+    let badge: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(tint)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(tint.opacity(0.15)))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.system(size: 15, weight: .bold, design: .rounded))
+                Text(subtitle).font(.system(size: 11)).foregroundColor(.white.opacity(0.55)).lineLimit(1)
+            }
+            Spacer()
+            Text(badge)
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .tracking(0.8)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Capsule().fill(tint.opacity(0.18)))
+                .foregroundColor(tint)
+        }
+    }
+}
+
+struct PercentRing: View {
+    let value: Double?
+    let tint: Color
+
+    private var fraction: Double { min(1, max(0, (value ?? 0) / 100)) }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .trim(from: 0, to: 0.75)
+                .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .rotationEffect(.degrees(135))
+            Circle()
+                .trim(from: 0, to: 0.75 * fraction)
+                .stroke(tint, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .rotationEffect(.degrees(135))
+                .shadow(color: tint.opacity(0.7), radius: 7)
+            VStack(spacing: 0) {
+                Text(value.map { String(format: "%.0f", $0) } ?? "--")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                Text("%")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+        }
+        .padding(5)
+        .animation(.easeInOut(duration: 0.4), value: fraction)
+    }
+}
+
+struct CoreBars: View {
+    let values: [Double]
+
+    var body: some View {
+        GeometryReader { geo in
+            HStack(alignment: .bottom, spacing: values.count > 16 ? 2 : 3) {
+                ForEach(Array(values.enumerated()), id: \.offset) { item in
+                    ZStack(alignment: .bottom) {
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(Color.white.opacity(0.07))
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(Theme.usageColor(for: item.element))
+                            .frame(height: max(2, geo.size.height * CGFloat(min(100, item.element) / 100)))
+                    }
+                    .help("Core \(item.offset + 1): \(Int(item.element.rounded()))%")
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.3), value: values)
+    }
+}
+
+struct CPUUsageCard: View {
+    let usage: UsageSnapshot
+    let history: [Double]
+
+    var body: some View {
+        let tint = Theme.usageColor(for: usage.cpu)
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardHeader(title: "CPU Usage",
+                           subtitle: usage.perCore.isEmpty ? "Measuring…" : "\(usage.perCore.count) cores",
+                           symbol: "speedometer", tint: tint,
+                           badge: usage.cpu.map { "\(Int($0.rounded()))%" } ?? "--")
+                HStack(alignment: .center, spacing: 18) {
+                    PercentRing(value: usage.cpu, tint: tint)
+                        .frame(width: 104, height: 104)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("PER CORE")
+                            .font(.system(size: 9, weight: .semibold))
+                            .tracking(0.6)
+                            .foregroundColor(.white.opacity(0.45))
+                        CoreBars(values: usage.perCore)
+                            .frame(height: 70)
+                    }
+                }
+                Sparkline(values: history, tint: tint)
+                    .frame(height: 36)
+            }
+        }
+    }
+}
+
+struct MemoryCard: View {
+    let usage: UsageSnapshot
+    let history: [Double]
+
+    var body: some View {
+        let tint = Theme.usageColor(for: usage.memPercent)
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardHeader(title: "Memory",
+                           subtitle: "\(Theme.bytes(usage.memUsed)) of \(Theme.bytes(usage.memTotal)) used",
+                           symbol: "memorychip", tint: tint,
+                           badge: usage.memPercent.map { "\(Int($0.rounded()))%" } ?? "--")
+                HStack(alignment: .center, spacing: 18) {
+                    PercentRing(value: usage.memPercent, tint: tint)
+                        .frame(width: 104, height: 104)
+                    LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
+                                        GridItem(.flexible(), alignment: .leading)],
+                              alignment: .leading, spacing: 10) {
+                        StatRow(label: "App", value: Theme.bytes(usage.memApp))
+                        StatRow(label: "Wired", value: Theme.bytes(usage.memWired))
+                        StatRow(label: "Compressed", value: Theme.bytes(usage.memCompressed))
+                        StatRow(label: "Swap", value: Theme.bytes(usage.swapUsed))
+                    }
+                }
+                Sparkline(values: history, tint: tint)
+                    .frame(height: 36)
+            }
         }
     }
 }

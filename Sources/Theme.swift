@@ -26,6 +26,22 @@ enum Theme {
         }
     }
 
+    /// Colour for a load percentage.
+    static func usageColor(for percent: Double?) -> Color {
+        guard let p = percent else { return .gray }
+        switch p {
+        case ..<50: return Color(red: 0.35, green: 0.95, blue: 0.55)
+        case ..<75: return Color(red: 1.00, green: 0.80, blue: 0.25)
+        case ..<90: return Color(red: 1.00, green: 0.50, blue: 0.15)
+        default:    return Color(red: 1.00, green: 0.22, blue: 0.20)
+        }
+    }
+
+    static func bytes(_ b: UInt64) -> String {
+        let gb = Double(b) / 1_073_741_824
+        return gb >= 10 ? String(format: "%.0f GB", gb) : String(format: "%.1f GB", gb)
+    }
+
     static let gaugeGradient = AngularGradient(
         gradient: Gradient(colors: [
             Color(red: 0.30, green: 0.85, blue: 1.00),

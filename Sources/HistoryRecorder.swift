@@ -8,6 +8,8 @@ final class HistoryRecorder: ObservableObject {
         let time: Date
         let cpu: Double?
         let gpu: Double?
+        let cpuUsage: Double?
+        let memUsage: Double?
         let values: [Int: Double]   // column index -> °C
     }
 
@@ -33,7 +35,8 @@ final class HistoryRecorder: ObservableObject {
 
     // MARK: Recording
 
-    func append(_ readings: [SensorReading], cpu: Double?, gpu: Double?) {
+    func append(_ readings: [SensorReading], cpu: Double?, gpu: Double?,
+                cpuUsage: Double? = nil, memUsage: Double? = nil) {
         guard isRecording else { return }
         var values: [Int: Double] = [:]
         for r in readings {
@@ -47,7 +50,7 @@ final class HistoryRecorder: ObservableObject {
             }
             values[idx] = r.value
         }
-        rows.append(Row(time: Date(), cpu: cpu, gpu: gpu, values: values))
+        rows.append(Row(time: Date(), cpu: cpu, gpu: gpu, cpuUsage: cpuUsage, memUsage: memUsage, values: values))
         if rows.count > maxRows { rows.removeFirst(rows.count - maxRows) }
         sampleCount = rows.count
     }
@@ -73,12 +76,12 @@ final class HistoryRecorder: ObservableObject {
 
         var lines: [String] = []
         lines.reserveCapacity(rows.count + 1)
-        lines.append((["timestamp", "elapsed_s", "cpu_avg_C", "gpu_avg_C"] + columns.map(quote)).joined(separator: ","))
+        lines.append((["timestamp", "elapsed_s", "cpu_avg_C", "gpu_avg_C", "cpu_usage_pct", "mem_usage_pct"] + columns.map(quote)).joined(separator: ","))
         let t0 = rows.first?.time ?? Date()
         for r in rows {
             var fields = [iso.string(from: r.time),
                           String(format: "%.1f", r.time.timeIntervalSince(t0)),
-                          num(r.cpu), num(r.gpu)]
+                          num(r.cpu), num(r.gpu), num(r.cpuUsage), num(r.memUsage)]
             for i in 0..<columns.count { fields.append(num(r.values[i])) }
             lines.append(fields.joined(separator: ","))
         }

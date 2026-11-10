@@ -3,6 +3,7 @@
 A native macOS app (SwiftUI + Metal) that shows and monitors CPU and GPU temperatures.
 
 - Live CPU and GPU gauges, hottest sensor, session min/max, and a 2-minute history sparkline
+- **CPU usage** (overall + per-core bars) and **memory usage** (used/total, App, Wired, Compressed, Swap)
 - A full-window **Metal** fire background that grows hotter, taller and faster with temperature
 - Every individual sensor listed, colour-coded
 - A menu bar readout (🔥 CPU 52° GPU 47°) that stays while the app runs
@@ -42,7 +43,7 @@ The ⬇︎ menu next to it, the **File** menu (⌘S) and the menu bar item all l
 - **Auto-save CSV + Graph When Quitting**: writes `TempMonitor_<start time>.csv` and a matching `.png` there automatically
 - **Clear History**, and switch recording on or off (the setting is remembered)
 
-CSV columns: `timestamp, elapsed_s, cpu_avg_C, gpu_avg_C`, then one column per sensor (always in °C).
+CSV columns: `timestamp, elapsed_s, cpu_avg_C, gpu_avg_C, cpu_usage_pct, mem_usage_pct`, then one column per sensor (always in °C).
 The file opens directly in Numbers or Excel. History is kept in memory for up to ~500,000 samples
 (about 5.8 days at a 1 s interval).
 
@@ -56,6 +57,7 @@ Sources/
   TemperatureMonitor.swift  polling, statistics, history
   SensorHub.swift           sensor discovery and classification
   Theme.swift               colours and units
+  SystemUsage.swift         CPU load (per core) and memory usage via Mach APIs
   HistoryRecorder.swift     session recording and CSV export
   GraphRenderer.swift       PNG / PDF chart export (Core Graphics)
   C/sensors.h, smc.c, hid.c AppleSMC + IOHID access (Swift bridging header)

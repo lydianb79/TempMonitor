@@ -27,6 +27,9 @@ final class TemperatureMonitor: ObservableObject {
     @Published private(set) var cpu = GroupStats()
     @Published private(set) var gpu = GroupStats()
     @Published private(set) var sensors: [SensorReading] = []
+    @Published private(set) var usage = UsageSnapshot()
+    @Published private(set) var cpuUsageHistory: [Double] = []
+    @Published private(set) var memUsageHistory: [Double] = []
     @Published private(set) var ready = false
     @Published var interval: Double = 1.0 { didSet { schedule() } }
 
@@ -36,6 +39,7 @@ final class TemperatureMonitor: ObservableObject {
     let historyLength = 120
 
     private var hub: SensorHub?
+    private let usageSampler = SystemUsageSampler()
     private let queue = DispatchQueue(label: "TempMonitor.sensors", qos: .utility)
     private var timer: DispatchSourceTimer?
 
@@ -68,15 +72,25 @@ final class TemperatureMonitor: ObservableObject {
     private func poll() {
         guard let hub = hub else { return }
         let readings = hub.read()
+        let usage = usageSampler.sample()
         let cpuValues = readings.filter { $0.group == .cpu }.map(\.value)
         let gpuValues = readings.filter { $0.group == .gpu }.map(\.value)
         DispatchQueue.main.async {
             self.cpu.push(cpuValues, limit: self.historyLength)
             self.gpu.push(gpuValues, limit: self.historyLength)
-            self.recorder.append(readings, cpu: self.cpu.current, gpu: self.gpu.current)
+            self.usage = usage
+            if let c = usage.cpu { self.appendHistory(&self.cpuUsageHistory, c) }
+            if let m = usage.memPercent { self.appendHistory(&self.memUsageHistory, m) }
+            self.recorder.append(readings, cpu: self.cpu.current, gpu: self.gpu.current,
+                                 cpuUsage: usage.cpu, memUsage: usage.memPercent)
             self.sensors = readings.sorted { ($0.group.rawValue, $0.name) < ($1.group.rawValue, $1.name) }
             self.ready = true
         }
+    }
+
+    private func appendHistory(_ h: inout [Double], _ v: Double) {
+        h.append(v)
+        if h.count > historyLength { h.removeFirst(h.count - historyLength) }
     }
 
     func resetSession() {

@@ -9,7 +9,7 @@ struct TempMonitorApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .frame(minWidth: 780, idealWidth: 860, minHeight: 600, idealHeight: 700)
+                .frame(minWidth: 780, idealWidth: 880, minHeight: 620, idealHeight: 900)
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -65,13 +65,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let monitor = TemperatureMonitor.shared
-        monitor.$cpu.combineLatest(monitor.$gpu)
+        monitor.$cpu.combineLatest(monitor.$gpu, monitor.$usage)
             .receive(on: RunLoop.main)
-            .sink { [weak self] cpu, gpu in
+            .sink { [weak self] cpu, gpu, usage in
                 let unit = TempUnit(rawValue: UserDefaults.standard.string(forKey: "unit") ?? "") ?? .celsius
                 var parts: [String] = []
-                if cpu.current != nil { parts.append("CPU \(unit.format(cpu.current))") }
+                if cpu.current != nil || usage.cpu != nil {
+                    var s = "CPU"
+                    if cpu.current != nil { s += " \(unit.format(cpu.current))" }
+                    if let load = usage.cpu { s += " \(Int(load.rounded()))%" }
+                    parts.append(s)
+                }
                 if gpu.current != nil { parts.append("GPU \(unit.format(gpu.current))") }
+                if let mem = usage.memPercent { parts.append("MEM \(Int(mem.rounded()))%") }
                 self?.statusItem?.button?.title = " " + (parts.isEmpty ? "--°" : parts.joined(separator: "  "))
             }
             .store(in: &cancellables)
