@@ -9,6 +9,12 @@
   CPU and memory usage, and records the whole session as CSV or as a graph.
 </p>
 
+<p align="center">
+  <img src="docs/screenshot.png" width="900" alt="TempMonitor on an Apple M2: CPU and GPU temperature, CPU usage per core, memory usage and the sensor grid">
+</p>
+
+<p align="center"><sub>TempMonitor on an Apple M2 MacBook: 76 °C CPU, 75 °C GPU, 44 % CPU load, 77 % memory, 71 sensors found.</sub></p>
+
 ---
 
 ## Download
@@ -158,6 +164,12 @@ release.sh                  publishes a GitHub release
 - The Metal shader is compiled when the app starts, so no Metal toolchain is needed to build.
 - The chip type is detected at runtime, so the Intel build also reads the right sensors on Apple Silicon
   under Rosetta.
+
+## Tested on
+
+- Apple M2 (macOS, arm64 build): CPU, GPU, usage and 71 temperature sensors detected
+
+Reports from other Macs (M1, M3, M4, Intel) are welcome: please open an issue with your chip and what the app shows.
 
 ## Notes
 
